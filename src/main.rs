@@ -84,7 +84,7 @@ async fn main() -> Result<()> {
         .collect();
 
     let state_path = "state.toml";
-    if !fs::metadata(state_path).is_ok() {
+    if fs::metadata(state_path).is_err() {
         let state = State {
             reservations: new_reservations.clone(),
         };
