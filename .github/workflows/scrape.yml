@@ -34,8 +34,8 @@ jobs:
       - name: Download previous state artifact
         uses: actions/download-artifact@v4
         with:
-          name: state.toml
-          path: ./
+          name: state
+          path: state.toml
         continue-on-error: true
 
       - name: Setup Rust toolchain
