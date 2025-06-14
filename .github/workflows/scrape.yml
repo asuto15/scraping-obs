@@ -1,0 +1,51 @@
+name: "練習棟予約システム スクレイピング"
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download previous state artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: state
+          path: ./
+        continue-on-error: true
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Check code format
+        run: cargo fmt -- --check
+
+      - name: Run Clippy linter
+        run: cargo clippy -- -D warnings
+
+      - name: Build in release mode
+        run: cargo build --release
+
+      - name: Run scraper
+        env:
+          CALENDAR_URL: ${{ secrets.CALENDAR_URL }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: |
+          if [ ! -f state.toml ]; then echo 'state = { reservations = [] }' > state.toml; fi
+          ./target/release/scraping-obs
+
+      - name: Upload new state artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: state
+          path: state.toml
