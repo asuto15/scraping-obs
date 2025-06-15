@@ -63,7 +63,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           name: state
-          path: state.toml
+          path: .
           run-id: ${{ steps.prev_run.outputs.run-id }}
         continue-on-error: true
 
