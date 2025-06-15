@@ -61,6 +61,7 @@ jobs:
       - name: Download previous state artifact
         uses: actions/download-artifact@v4
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           name: state
           path: state.toml
           run-id: ${{ steps.prev_run.outputs.run-id }}
