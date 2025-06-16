@@ -2,96 +2,31 @@ name: "練習棟予約システム スクレイピング"
 
 permissions:
   contents: read
-  actions: read
 
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '0 * * * *'
+    - cron: "0 * * * *"
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: Cache build output
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.toml', 'src/**/*.rs') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-target-
-
-      - name: Find previous successful run
-        id: prev_run
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const runs = await github.paginate(
-              github.rest.actions.listWorkflowRuns.endpoint.merge({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'scrape.yml',
-                status: 'completed',
-              })
-            );
-            const prev = runs
-              .filter(r => r.id < context.runId && r.conclusion === 'success')
-              .sort((a,b) => b.id - a.id)[0];
-            if (!prev) {
-              core.setFailed('前回成功した run_id が見つかりませんでした');
-            } else {
-              core.setOutput('run-id', prev.id);
-            }
-
-      - name: Download previous state artifact
-        uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          name: state
-          path: .
-          run-id: ${{ steps.prev_run.outputs.run-id }}
-        continue-on-error: true
-
-      - name: Setup Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-          components: clippy, rustfmt
-
-      - name: Check code format
-        run: cargo fmt -- --check
-
-      - name: Run Clippy linter
-        run: cargo clippy -- -D warnings
-
-      - name: Build in release mode
-        run: cargo build --release
+      - name: Download latest release via GH CLI
+        run: |
+          gh auth setup-git
+          gh release download \
+            --repo ${{ github.repository }} \
+            --pattern scraping-obs \
+            --limit 1 \
+            --output ./scraping-obs
+          chmod +x ./scraping-obs
 
       - name: Run scraper
         env:
           CALENDAR_URL: ${{ secrets.CALENDAR_URL }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-        run: |
-          ./target/release/scraping-obs
-
-      - name: Upload new state artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: state
-          path: state.toml
+        run: ./scraping-obs
