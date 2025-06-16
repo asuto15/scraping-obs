@@ -20,7 +20,6 @@ jobs:
           gh release download \
             --repo ${{ github.repository }} \
             --pattern scraping-obs \
-            --limit 1 \
             --output ./scraping-obs
           chmod +x ./scraping-obs
 
