@@ -105,23 +105,39 @@ async fn main() -> Result<()> {
         if !added.is_empty() {
             content.push_str("**✨ 追加された予約**\n");
             for r in &added {
-                content.push_str(&format!(
-                    "- {} → {} ({})\n",
-                    r.start.format("%Y-%m-%d %H:%M"),
-                    r.end.format("%Y-%m-%d %H:%M"),
-                    r.summary
-                ));
+                let range_str = if r.start.date_naive() == r.end.date_naive() {
+                    format!(
+                        "{}~{}",
+                        r.start.format("%Y-%m-%d %H:%M"),
+                        r.end.format("%H:%M")
+                    )
+                } else {
+                    format!(
+                        "{} ~ {}",
+                        r.start.format("%Y-%m-%d %H:%M"),
+                        r.end.format("%Y-%m-%d %H:%M"),
+                    )
+                };
+                content.push_str(&format!("- {} ({})\n", range_str, r.summary));
             }
         }
         if !removed.is_empty() {
             content.push_str("**🗑️ 削除された予約**\n");
             for r in &removed {
-                content.push_str(&format!(
-                    "- {} → {} ({})\n",
-                    r.start.format("%Y-%m-%d %H:%M"),
-                    r.end.format("%Y-%m-%d %H:%M"),
-                    r.summary
-                ));
+                let range_str = if r.start.date_naive() == r.end.date_naive() {
+                    format!(
+                        "{}~{}",
+                        r.start.format("%Y-%m-%d %H:%M"),
+                        r.end.format("%H:%M")
+                    )
+                } else {
+                    format!(
+                        "{} ~ {}",
+                        r.start.format("%Y-%m-%d %H:%M"),
+                        r.end.format("%Y-%m-%d %H:%M"),
+                    )
+                };
+                content.push_str(&format!("- {} ({})\n", range_str, r.summary));
             }
         }
         client
