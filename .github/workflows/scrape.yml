@@ -45,6 +45,17 @@ jobs:
           path: .
           run-id: ${{ steps.prev_run.outputs.run-id }}
         continue-on-error: true
+      - name: Decrypt artifact
+        run: |
+          if [ -f state.toml.enc ]; then
+            echo "Decrypting previous state..."
+            openssl enc -d -aes-256-ctr \
+              -pass env:ARTIFACT_PASSPHRASE \
+              -in state.toml.enc \
+              -out state.toml
+          else
+            echo "No previous state artifact."
+          fi
       - name: Download latest release via GH CLI
         run: |
           gh auth setup-git
@@ -59,8 +70,15 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: ./scraping-obs
+      - name: Encrypt artifact
+        run: |
+          openssl enc -aes-256-ctr \
+            -salt \
+            -pass env:ARTIFACT_PASSPHRASE \
+            -in state.toml \
+            -out state.toml.enc
       - name: Upload new state artifact
         uses: actions/upload-artifact@v4
         with:
           name: state
-          path: state.toml
+          path: state.toml.enc
