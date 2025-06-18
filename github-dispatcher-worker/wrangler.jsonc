@@ -1,0 +1,17 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "github-dispatcher-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-06-18",
+	"triggers": {
+		"crons": [
+			"*/5 * * * *"
+		]
+	},
+	"vars": {
+		"GITHUB_TOKEN": "${GITHUB_TOKEN}"
+	},
+	"observability": {
+		"enabled": true
+	}
+}
