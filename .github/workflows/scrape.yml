@@ -46,6 +46,8 @@ jobs:
           run-id: ${{ steps.prev_run.outputs.run-id }}
         continue-on-error: true
       - name: Decrypt artifact
+        env:
+          ARTIFACT_PASSPHRASE: ${{ secrets.ARTIFACT_PASSPHRASE }}
         run: |
           if [ -f state.toml.enc ]; then
             echo "Decrypting previous state..."
@@ -71,6 +73,8 @@ jobs:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: ./scraping-obs
       - name: Encrypt artifact
+        env:
+          ARTIFACT_PASSPHRASE: ${{ secrets.ARTIFACT_PASSPHRASE }}
         run: |
           openssl enc -aes-256-ctr \
             -salt \
