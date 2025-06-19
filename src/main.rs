@@ -50,8 +50,14 @@ async fn main() -> Result<()> {
     let calendar_url = env::var("CALENDAR_URL")?;
     let api_key = env::var("GOOGLE_API_KEY")?;
     let webhook_url = env::var("WEBHOOK_URL")?;
-    let now_utc = Utc::now();
-    let now = now_utc.with_timezone(&jst);
+    let now = Utc::now().with_timezone(&jst);
+    let today = now
+        .date_naive()
+        .and_hms_opt(0, 0, 0)
+        .unwrap()
+        .and_local_timezone(jst)
+        .earliest()
+        .unwrap();
     let two_weeks = now + Duration::days(14);
 
     let client = Client::builder().build()?;
@@ -59,7 +65,7 @@ async fn main() -> Result<()> {
         .get(&calendar_url)
         .query(&[
             ("key", api_key.clone()),
-            ("timeMin", now.to_rfc3339()),
+            ("timeMin", today.to_rfc3339()),
             ("timeMax", two_weeks.to_rfc3339()),
             ("singleEvents", "true".to_string()),
             ("maxResults", "9999".to_string()),
@@ -98,7 +104,11 @@ async fn main() -> Result<()> {
     let old_set: HashSet<_> = old_reservations.iter().cloned().collect();
     let new_set: HashSet<_> = new_reservations.iter().cloned().collect();
     let added: Vec<_> = new_set.difference(&old_set).cloned().collect();
-    let removed: Vec<_> = old_set.difference(&new_set).cloned().collect();
+    let removed: Vec<_> = old_set
+        .difference(&new_set)
+        .filter(|r| r.start > now)
+        .cloned()
+        .collect();
 
     if !added.is_empty() || !removed.is_empty() {
         let mut content = String::new();
@@ -148,7 +158,7 @@ async fn main() -> Result<()> {
     }
 
     let mut sorted_new_reservations = new_reservations;
-    sorted_new_reservations.sort_by(|a, b| a.start.cmp(&b.start));
+    sorted_new_reservations.sort_by_key(|r| r.start);
     let state = State {
         reservations: sorted_new_reservations,
     };
