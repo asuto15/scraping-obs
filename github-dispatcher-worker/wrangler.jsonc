@@ -5,7 +5,7 @@
 	"compatibility_date": "2025-06-18",
 	"triggers": {
 		"crons": [
-			"*/5 * * * *"
+			"*/1 * * * *"
 		]
 	},
 	"vars": {
