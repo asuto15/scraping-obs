@@ -21,21 +21,44 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const runs = await github.paginate(
-              github.rest.actions.listWorkflowRuns.endpoint.merge({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'scrape.yml',
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflow_id = 'scrape.yml';
+            const perPage = 10;
+            let page = 1;
+            let found = null;
+
+            while (true) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id,
                 status: 'completed',
-              })
-            );
-            const prev = runs
-              .filter(r => r.id < context.runId && r.conclusion === 'success')
-              .sort((a,b) => b.id - a.id)[0];
-            if (!prev) {
-              core.setFailed('前回成功した run_id が見つかりませんでした');
+                per_page: perPage,
+                page,
+              });
+
+              const runs = data.workflow_runs;
+              if (runs.length === 0) {
+                break;
+              }
+
+              const candidate = runs
+                .filter(r => r.id < context.runId && r.conclusion === 'success')
+                .sort((a, b) => b.id - a.id)[0];
+
+              if (candidate) {
+                found = candidate;
+                break;
+              }
+
+              page++;
+            }
+
+            if (found) {
+              core.setOutput('run-id', found.id);
             } else {
-              core.setOutput('run-id', prev.id);
+              core.setFailed(`過去の実行（${perPage} 件ずつ取得）を全て調べましたが前回成功 run が見つかりませんでした`);
             }
       - name: Download previous state artifact
         uses: actions/download-artifact@v4
